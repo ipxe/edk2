@@ -1643,6 +1643,7 @@ UpdateNicNum (
 
 **/
 VOID
+EFIAPI
 UndiApiEntry (
   IN  UINT64  Cdb
   )
