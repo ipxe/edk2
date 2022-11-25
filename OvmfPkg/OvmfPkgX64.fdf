@@ -407,6 +407,8 @@ INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf
 #
 !include OvmfPkg/OvmfTpmDxe.fdf.inc
 
+!include UsbNetworkPkg/Config/UsbNetworkPkgComponentsDxe.inc.fdf
+
 ################################################################################
 
 [FV.FVMAIN_COMPACT]
