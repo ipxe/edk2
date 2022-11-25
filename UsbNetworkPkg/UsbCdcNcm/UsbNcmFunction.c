@@ -251,6 +251,13 @@ UsbEthReceive (
     UsbEthDriver->NowDatagram   = 0;
     UsbEthDriver->TotalDatagram = 0;
 
+    //
+    static int x;
+    if ( 1 && ( ++x % 4 ) ) {
+	    DEBUG (( DEBUG_INFO, "%%" ));
+	    Status = EFI_TIMEOUT;
+    } else {
+	    //DEBUG (( DEBUG_INFO, "*** %a %d\n", __FUNCTION__, __LINE__ ));
     Status = UsbIo->UsbBulkTransfer (
                       UsbIo,
                       UsbEthDriver->BulkInEndpoint,
@@ -259,6 +266,8 @@ UsbEthReceive (
                       USB_ETHERNET_BULK_TIMEOUT,
                       &TransStatus
                       );
+    //DEBUG (( DEBUG_INFO, "*** %a %d\n", __FUNCTION__, __LINE__ ));
+    }
     if (EFI_ERROR (Status)) {
       return Status;
     }

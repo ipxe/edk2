@@ -1346,6 +1346,7 @@ XhcExecTransfer (
 RINGDOORBELL:
   XhcRingDoorBell (Xhc, SlotId, Dci);
 
+  int foo = Timeout * 1000;
   do {
     Finished = XhcCheckUrbResult (Xhc, Urb);
     if (Finished) {
@@ -1353,6 +1354,13 @@ RINGDOORBELL:
     }
 
     gBS->Stall (XHC_1_MICROSECOND);
+
+    if (--foo < 0) {
+	    //DEBUG (( DEBUG_INFO, "*** %a %d timer stuck\n",
+	    //__FUNCTION__, __LINE__ ));
+	    gBS->CheckEvent(NULL);
+    }
+
   } while (IndefiniteTimeout || EFI_ERROR (gBS->CheckEvent (TimeoutEvent)));
 
 DONE:

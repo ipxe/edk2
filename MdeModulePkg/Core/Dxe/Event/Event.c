@@ -580,6 +580,18 @@ CoreCheckEvent (
   Event = UserEvent;
 
   if (Event == NULL) {
+	  static UINT64 StuckTime;
+	  extern UINT64    mEfiSystemTime;
+
+	  if ( StuckTime != mEfiSystemTime ) {
+		  StuckTime = mEfiSystemTime;
+		  DEBUG (( DEBUG_INFO, "*** %a %d timer stuck? time %lx\n",
+			   __FUNCTION__, __LINE__,
+			   (unsigned long)StuckTime));
+	  }
+  }
+
+  if (Event == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 

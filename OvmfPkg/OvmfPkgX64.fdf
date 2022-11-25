@@ -348,6 +348,10 @@ INF OvmfPkg/TdxDxe/TdxDxe.inf
 !include NetworkPkg/Network.fdf.inc
   INF  OvmfPkg/VirtioNetDxe/VirtioNet.inf
 
+  #FILE DRIVER = 662279ab-3448-4059-a5da-2b7333a3685c {
+  #  SECTION PE32 = RtkUsbUndiDxe.2.019.2016.06.28_signed/64/RtkUsbUndiDxe.efi
+  #}
+
 #
 # Usb Support
 #

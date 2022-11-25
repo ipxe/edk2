@@ -63,9 +63,22 @@ TimerInterruptHandler (
   STATIC NESTED_INTERRUPT_STATE  NestedInterruptState;
   EFI_TPL                        OriginalTPL;
 
+  //
+  unsigned int discard_a;
+  __asm__ __volatile__ ( "outb %%al, $0xe9" :
+			 "=a" ( discard_a ) : "0" ( '<' ) );
+
   OriginalTPL = NestedInterruptRaiseTPL ();
 
   SendApicEoi ();
+
+  //
+  {
+	  static unsigned int foo;
+
+	  if ( ( ++foo & 0xff ) > 0x80 )
+		  gBS->Stall ( 20000 );
+  }
 
   if (mTimerNotifyFunction != NULL) {
     //
@@ -75,6 +88,9 @@ TimerInterruptHandler (
   }
 
   NestedInterruptRestoreTPL (OriginalTPL, SystemContext, &NestedInterruptState);
+
+  __asm__ __volatile__ ( "outb %%al, $0xe9" :
+			 "=a" ( discard_a ) : "0" ( '>' ) );
 }
 
 /**
