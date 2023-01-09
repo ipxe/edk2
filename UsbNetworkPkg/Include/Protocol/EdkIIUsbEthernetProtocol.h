@@ -160,6 +160,8 @@ typedef struct {
   UINT8                          CurrentNodeAddress[PXE_MAC_LENGTH];
   UINT8                          BroadcastNodeAddress[PXE_MAC_LENGTH];
   EFI_USB_DEVICE_REQUEST         Request;
+  EFI_EVENT                      RateLimiter;
+  UINTN                          RateLimitCredit;
 } NIC_DATA;
 
 #define NIC_DATA_SIGNATURE  SIGNATURE_32('n', 'i', 'c', 'd')

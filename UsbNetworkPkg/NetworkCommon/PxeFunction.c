@@ -29,6 +29,21 @@ API_FUNC  gUndiApiTable[] = {
   UndiReceive
 };
 
+STATIC
+VOID
+EFIAPI
+UndiRateLimiterCallback (
+  IN  EFI_EVENT Event,
+  IN  VOID      *Context
+  )
+{
+  NIC_DATA *Nic = Context;
+
+  if (Nic->RateLimitCredit < RATE_LIMITER_BURST) {
+    Nic->RateLimitCredit++;
+  }
+}
+
 /**
   This command is used to determine the operational state of the UNDI.
 
@@ -100,9 +115,6 @@ UndiStart (
     Cdb->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
     Cdb->StatCode  = PXE_STATCODE_INVALID_CDB;
     return;
-  } else {
-    Cdb->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
-    Cdb->StatCode  = PXE_STATCODE_SUCCESS;
   }
 
   if (Nic->State != PXE_STATFLAGS_GET_STATE_STOPPED) {
@@ -120,14 +132,46 @@ UndiStart (
   Nic->PxeStart.UnMap_Mem = 0;
   Nic->PxeStart.Sync_Mem  = Cpb->Sync_Mem;
   Nic->PxeStart.Unique_ID = Cpb->Unique_ID;
-  Nic->State              = PXE_STATFLAGS_GET_STATE_STARTED;
+
+  Status = gBS->CreateEvent (
+    EVT_TIMER | EVT_NOTIFY_SIGNAL,
+    TPL_CALLBACK,
+    UndiRateLimiterCallback,
+    Nic,
+    &Nic->RateLimiter
+    );
+  if (EFI_ERROR (Status)) {
+    goto ErrorCreateEvent;
+  }
+
+  Status = gBS->SetTimer (
+    Nic->RateLimiter,
+    TimerPeriodic,
+    RATE_LIMITER_INTERVAL
+    );
+  if (EFI_ERROR (Status)) {
+    goto ErrorSetTimer;
+  }
 
   if (Nic->UsbEth->UsbEthUndi.UsbEthUndiStart != NULL) {
     Status = Nic->UsbEth->UsbEthUndi.UsbEthUndiStart (Cdb, Nic);
     if (EFI_ERROR (Status)) {
-      Cdb->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
+      goto ErrorUndiStart;
     }
   }
+
+  Nic->State     = PXE_STATFLAGS_GET_STATE_STARTED;
+  Cdb->StatFlags = PXE_STATFLAGS_COMMAND_COMPLETE;
+  Cdb->StatCode  = PXE_STATCODE_SUCCESS;
+  return;
+
+ ErrorUndiStart:
+  gBS->SetTimer (&Nic->RateLimiter, TimerCancel, 0);
+ ErrorSetTimer:
+  gBS->CloseEvent (&Nic->RateLimiter);
+ ErrorCreateEvent:
+  Cdb->StatFlags = PXE_STATFLAGS_COMMAND_FAILED;
+  Cdb->StatCode  = PXE_STATCODE_DEVICE_FAILURE;
 }
 
 /**
@@ -182,6 +226,10 @@ UndiStop (
   Nic->PxeStart.UnMap_Mem = 0;
   Nic->PxeStart.Sync_Mem  = 0;
   Nic->State              = PXE_STATFLAGS_GET_STATE_STOPPED;
+
+  gBS->SetTimer (&Nic->RateLimiter, TimerCancel, 0);
+
+  gBS->CloseEvent (&Nic->RateLimiter);
 
   if (Nic->UsbEth->UsbEthUndi.UsbEthUndiStop != NULL) {
     Status = Nic->UsbEth->UsbEthUndi.UsbEthUndiStop (Cdb, Nic);
@@ -1506,8 +1554,13 @@ Receive (
   }
 
   while (1) {
+    if (Nic->RateLimitCredit == 0) {
+      break;
+    }
+
     Status = Nic->UsbEth->UsbEthReceive (Cdb, Nic->UsbEth, (VOID *)BulkInData, &DataLength);
     if (EFI_ERROR (Status)) {
+      Nic->RateLimitCredit--;
       break;
     }
 

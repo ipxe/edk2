@@ -25,6 +25,8 @@
 #define RX_BUFFER_COUNT                  32
 #define TX_BUFFER_COUNT                  32
 #define MEMORY_REQUIRE                   0
+#define RATE_LIMITER_INTERVAL            1000000  // 10Hz
+#define RATE_LIMITER_BURST               10
 
 #define UNDI_DEV_SIGNATURE  SIGNATURE_32('u','n','d','i')
 #define UNDI_DEV_FROM_THIS(a)  CR(a, NIC_DEVICE, NiiProtocol, UNDI_DEV_SIGNATURE)
