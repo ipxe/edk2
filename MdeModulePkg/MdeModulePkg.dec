@@ -169,6 +169,10 @@
   #
   ImagePropertiesRecordLib|Include/Library/ImagePropertiesRecordLib.h
 
+  ##  @libraryclass  Handle TPL changes within nested interrupt handlers
+  #
+  NestedInterruptTplLib|Include/Library/NestedInterruptTplLib.h
+
 [Guids]
   ## MdeModule package token space guid
   # Include/Guid/MdeModulePkgTokenSpace.h

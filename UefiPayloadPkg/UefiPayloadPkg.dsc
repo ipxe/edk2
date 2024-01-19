@@ -687,7 +687,7 @@
 !elseif $(TIMER_SUPPORT) == "LAPIC"
   OvmfPkg/LocalApicTimerDxe/LocalApicTimerDxe.inf {
     <LibraryClasses>
-      NestedInterruptTplLib|OvmfPkg/Library/NestedInterruptTplLib/NestedInterruptTplLib.inf
+      NestedInterruptTplLib|MdeModulePkg/Library/NestedInterruptTplLib/NestedInterruptTplLib.inf
   }
 !else
   !error "Invalid TIMER_SUPPORT"
