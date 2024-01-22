@@ -9,6 +9,10 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 
+#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
+#include <Library/ArmLib.h>
+#endif
+
 #include "Iret.h"
 
 /**
@@ -53,6 +57,20 @@ DisableInterruptsOnIret (
   //
   Eflags.Bits.IF                          = 0;
   SystemContext.SystemContextIa32->Eflags = Eflags.UintN;
+
+ #elif defined (MDE_CPU_AARCH64)
+
+  //
+  // Set IRQ-disabled flag.
+  //
+  SystemContext.SystemContextAArch64->SPSR |= SPSR_I;
+
+ #elif defined (MDE_CPU_ARM)
+
+  //
+  // Set IRQ-disabled flag.
+  //
+  SystemContext.SystemContextArm->CPSR |= CPSR_IRQ;
 
  #else
 

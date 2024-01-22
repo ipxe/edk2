@@ -27,6 +27,9 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
 
+[Packages.ARM, Packages.AARCH64]
+  ArmPkg/ArmPkg.dec
+
 [LibraryClasses]
   BaseLib
   DebugLib
