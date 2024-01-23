@@ -18,6 +18,7 @@
 #include <Library/PcdLib.h>
 #include <Library/IoLib.h>
 #include <Library/ArmGenericTimerCounterLib.h>
+#include <Library/NestedInterruptTplLib.h>
 
 #include <Protocol/Timer.h>
 #include <Protocol/HardwareInterrupt.h>
@@ -288,16 +289,17 @@ TimerInterruptHandler (
   IN  EFI_SYSTEM_CONTEXT         SystemContext
   )
 {
-  EFI_TPL  OriginalTPL;
-  UINT64   CurrentValue;
-  UINT64   CompareValue;
+  STATIC NESTED_INTERRUPT_STATE  NestedInterruptState;
+  EFI_TPL                        OriginalTPL;
+  UINT64                         CurrentValue;
+  UINT64                         CompareValue;
 
   //
   // DXE core uses this callback for the EFI timer tick. The DXE core uses locks
   // that raise to TPL_HIGH and then restore back to current level. Thus we need
   // to make sure TPL level is set to TPL_HIGH while we are handling the timer tick.
   //
-  OriginalTPL = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+  OriginalTPL = NestedInterruptRaiseTPL ();
 
   // Signal end of interrupt early to help avoid losing subsequent ticks
   // from long duration handlers
@@ -333,7 +335,7 @@ TimerInterruptHandler (
     ArmInstructionSynchronizationBarrier ();
   }
 
-  gBS->RestoreTPL (OriginalTPL);
+  NestedInterruptRestoreTPL (OriginalTPL, SystemContext, &NestedInterruptState);
 }
 
 /**
