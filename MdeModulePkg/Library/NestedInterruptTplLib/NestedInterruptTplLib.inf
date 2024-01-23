@@ -34,3 +34,6 @@
 
 [Depex.common.DXE_DRIVER]
   TRUE
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNestedInterruptNumberOfSelfTests

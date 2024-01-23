@@ -17,6 +17,18 @@
 
 #include "Iret.h"
 
+//
+// Number of self-tests to perform.
+//
+#define NUMBER_OF_SELF_TESTS \
+  (FixedPcdGet32 (PcdNestedInterruptNumberOfSelfTests))
+
+STATIC
+VOID
+NestedInterruptSelfTest (
+  IN NESTED_INTERRUPT_STATE  *IsrState
+  );
+
 /**
   Raise the task priority level to TPL_HIGH_LEVEL.
 
@@ -211,6 +223,16 @@ NestedInterruptRestoreTPL (
     //
     DisableInterrupts ();
 
+    ///
+    /// Perform a limited number of self-tests on the first few
+    /// invocations.
+    ///
+    if ((IsrState->DeferredRestoreTPL == FALSE) &&
+	(IsrState->SelfTestCount < NUMBER_OF_SELF_TESTS)) {
+      IsrState->SelfTestCount++;
+      NestedInterruptSelfTest (IsrState);
+    }
+
     //
     // DEFERRAL RETURN POINT
     //
@@ -247,4 +269,111 @@ NestedInterruptRestoreTPL (
       return;
     }
   }
+}
+
+/**
+  Perform internal self-test.
+
+  Induce a delay to force a nested timer interrupt to take place, and
+  verify that the nested interrupt behaves as required.
+
+  @param IsrState              A pointer to the state shared between all
+                               invocations of the nested interrupt handler.
+**/
+VOID
+NestedInterruptSelfTest (
+  IN NESTED_INTERRUPT_STATE  *IsrState
+  )
+{
+  UINTN SelfTestCount;
+  UINTN TimeOut;
+
+  //
+  // Record number of this self-test for debug messages.
+  //
+  SelfTestCount = IsrState->SelfTestCount;
+
+  //
+  // Re-enable interrupts and stall for up to one second to induce at
+  // least one more timer interrupt.
+  //
+  // This mimics the effect of an interrupt having occurred precisely
+  // at the end of our call to RestoreTPL(), with interrupts having
+  // been re-enabled by RestoreTPL() and with the interrupt happening
+  // to occur after the TPL has already been lowered back down to
+  // InterruptedTPL.  (This is the scenario that can lead to stack
+  // exhaustion, as described above.)
+  //
+  ASSERT (GetInterruptState () == FALSE);
+  ASSERT (IsrState->DeferredRestoreTPL == FALSE);
+  EnableInterrupts();
+  for (TimeOut = 0; TimeOut < 1000; TimeOut++) {
+    //
+    // Stall for 1ms
+    //
+    gBS->Stall (1000);
+
+    //
+    // If we observe that interrupts have been spontaneously disabled,
+    // then this must be because the induced interrupt handler's call
+    // to NestedInterruptRestoreTPL() correctly chose to defer the
+    // RestoreTPL() call to the outer handler (i.e. to us).
+    //
+    if (GetInterruptState() == FALSE) {
+      ASSERT (IsrState->DeferredRestoreTPL == TRUE);
+      DEBUG ((
+        DEBUG_INFO,
+        "Nested interrupt self-test %u/%u passed\n",
+        SelfTestCount,
+        NUMBER_OF_SELF_TESTS
+	));
+      return;
+    }
+  }
+
+  //
+  // The test has failed and we will halt the system.  Disable
+  // interrupts now so that any test-induced interrupt storm does not
+  // prevent the fatal error messages from being displayed correctly.
+  //
+  DisableInterrupts();
+
+  //
+  // If we observe that DeferredRestoreTPL is TRUE then this indicates
+  // that an interrupt did occur and NestedInterruptRestoreTPL() chose
+  // to defer the RestoreTPL() call to the outer handler, but that
+  // DisableInterruptsOnIret() failed to cause interrupts to be
+  // disabled after the IRET or equivalent instruction.
+  //
+  // This error represents a bug in the architecture-specific
+  // implementation of DisableInterruptsOnIret().
+  //
+  if (IsrState->DeferredRestoreTPL == TRUE) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "Nested interrupt self-test %u/%u failed: interrupts still enabled\n",
+      SelfTestCount,
+      NUMBER_OF_SELF_TESTS
+      ));
+    ASSERT (FALSE);
+  }
+
+  //
+  // If no timer interrupt occurred then this indicates that the timer
+  // interrupt handler failed to rearm the timer before calling
+  // NestedInterruptRestoreTPL().  This would prevent nested
+  // interrupts from occurring at all, which would break
+  // e.g. callbacks at TPL_CALLBACK that themselves wait on further
+  // timer events.
+  //
+  // This error represents a bug in the platform-specific timer
+  // interrupt handler.
+  //
+  DEBUG ((
+    DEBUG_ERROR,
+    "Nested interrupt self-test %u/%u failed: no nested interrupt\n",
+    SelfTestCount,
+    NUMBER_OF_SELF_TESTS
+    ));
+  ASSERT (FALSE);
 }

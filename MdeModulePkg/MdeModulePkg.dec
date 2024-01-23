@@ -1142,6 +1142,10 @@
   # @Prompt Enable large address image loading.
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageLargeAddressLoad|TRUE|BOOLEAN|0x30001059
 
+  ## Number of NestedInterruptTplLib self-tests to perform at startup.
+  # @Prompt Number of NestedInterruptTplLib self-tests.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNestedInterruptNumberOfSelfTests|1|UINT32|0x30001060
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
   #  PcdMaxPeiPcdCallBackNumberPerPcdEntry indicates the maximum number of callback function

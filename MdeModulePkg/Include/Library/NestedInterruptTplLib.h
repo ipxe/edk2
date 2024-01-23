@@ -32,6 +32,10 @@ typedef struct {
   /// interrupt handler.
   ///
   BOOLEAN    DeferredRestoreTPL;
+  ///
+  /// Number of self-tests performed.
+  ///
+  UINTN      SelfTestCount;
 } NESTED_INTERRUPT_STATE;
 
 /**
