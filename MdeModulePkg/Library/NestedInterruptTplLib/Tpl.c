@@ -100,6 +100,19 @@ NestedInterruptRestoreTPL (
   BOOLEAN  DeferredRestoreTPL;
 
   //
+  // At TPL_HIGH_LEVEL, CPU interrupts are disabled (as per the UEFI
+  // specification) and so we should never encounter a situation in
+  // which InterruptedTPL==TPL_HIGH_LEVEL.
+  //
+  // Restoring TPL to TPL_HIGH_LEVEL is always a no-op.  Return
+  // immediately so that we do not need to consider the effect of this
+  // possible invariant violation in the logic below.
+  //
+  if (InterruptedTPL >= TPL_HIGH_LEVEL) {
+    return;
+  }
+
+  //
   // If the TPL at which this interrupt occurred is equal to that of
   // the in-progress RestoreTPL() for an outer instance of the same
   // interrupt handler, then that outer handler's call to RestoreTPL()
